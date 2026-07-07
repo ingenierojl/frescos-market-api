@@ -10,11 +10,11 @@ from app.schemas.order import OrderCreate
 
 
 async def create_order(db: AsyncSession, payload: OrderCreate, user_id: uuid.UUID | None) -> Order:
-    product_ids = [item.product_id for item in payload.items]
-    result = await db.execute(select(Product).where(Product.id.in_(product_ids)))
-    products_by_id = {p.id: p for p in result.scalars().all()}
+    slugs = [item.product_slug for item in payload.items]
+    result = await db.execute(select(Product).where(Product.slug.in_(slugs)))
+    products_by_slug = {p.slug: p for p in result.scalars().all()}
 
-    missing = set(product_ids) - products_by_id.keys()
+    missing = set(slugs) - products_by_slug.keys()
     if missing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -24,7 +24,7 @@ async def create_order(db: AsyncSession, payload: OrderCreate, user_id: uuid.UUI
     order_items: list[OrderItem] = []
     total = 0
     for item in payload.items:
-        product = products_by_id[item.product_id]
+        product = products_by_slug[item.product_slug]
         if product.stock is not None and product.stock < item.quantity:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

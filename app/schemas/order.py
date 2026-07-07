@@ -7,7 +7,7 @@ from app.models.order import OrderStatus
 
 
 class OrderItemIn(BaseModel):
-    product_id: int
+    product_slug: str
     quantity: int = Field(gt=0)
 
 

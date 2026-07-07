@@ -13,6 +13,7 @@ class OrderItemIn(BaseModel):
 
 class OrderCreate(BaseModel):
     customer_name: str
+    customer_phone: str
     delivery_address: str
     items: list[OrderItemIn]
 
@@ -33,6 +34,7 @@ class OrderOut(BaseModel):
     status: str
     total: int
     customer_name: str
+    customer_phone: str
     delivery_address: str
     created_at: datetime
     items: list[OrderItemOut]

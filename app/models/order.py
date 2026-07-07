@@ -25,6 +25,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(20), default=OrderStatus.pending.value)
     total: Mapped[int] = mapped_column(Integer)  # COP
     customer_name: Mapped[str] = mapped_column(String(120))
+    customer_phone: Mapped[str] = mapped_column(String(30))
     delivery_address: Mapped[str] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

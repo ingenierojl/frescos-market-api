@@ -47,6 +47,7 @@ async def create_order(db: AsyncSession, payload: OrderCreate, user_id: uuid.UUI
         user_id=user_id,
         total=total,
         customer_name=payload.customer_name,
+        customer_phone=payload.customer_phone,
         delivery_address=payload.delivery_address,
         items=order_items,
     )

@@ -36,8 +36,8 @@ cp .env.example .env          # y completar con tus datos reales de Supabase
 ```
 
 Variables en `.env` (ver `.env.example`):
-- `DATABASE_URL`: connection string de Supabase, con el prefijo `postgresql+asyncpg://` (Supabase te da `postgresql://`, hay que cambiar el prefijo a mano).
-- `SUPABASE_JWT_SECRET`: Settings → API → JWT Secret, en el dashboard de Supabase.
+- `DATABASE_URL`: connection string de Supabase — botón "Connect" → Connection string → **Session pooler** → URI (con el prefijo `postgresql+asyncpg://`, Supabase te da `postgresql://`, hay que cambiarlo a mano). Se usa Session pooler y no Direct connection porque `asyncpg` usa prepared statements, incompatibles con el modo "Transaction pooler", y porque es compatible con redes solo-IPv4 (como Render).
+- `SUPABASE_URL`: Settings → API → Project URL. Se usa para construir la URL del JWKS (`{SUPABASE_URL}/auth/v1/.well-known/jwks.json`) y verificar los tokens firmados con la clave pública ECC/ES256 de Supabase — **no hace falta copiar ningún secreto**, la verificación es contra una clave pública.
 - `CORS_ORIGINS`: dominios del frontend separados por coma.
 
 ## Primera migración
@@ -64,7 +64,7 @@ Docs interactivas en `http://localhost:8000/docs`.
 - **Language**: Python 3
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Variables de entorno (`DATABASE_URL`, `SUPABASE_JWT_SECRET`, `CORS_ORIGINS`) configuradas en Render → Environment, no committeadas al repo.
+- Variables de entorno (`DATABASE_URL`, `SUPABASE_URL`, `CORS_ORIGINS`) configuradas en Render → Environment, no committeadas al repo.
 
 ## Endpoints actuales
 

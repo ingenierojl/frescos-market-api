@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.order import OrderStatus
+
 
 class OrderItemIn(BaseModel):
     product_id: int
@@ -34,3 +36,7 @@ class OrderOut(BaseModel):
     delivery_address: str
     created_at: datetime
     items: list[OrderItemOut]
+
+
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus

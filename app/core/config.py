@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str
     supabase_url: str  # ej: https://ezpqfzjbauxluvxmqxvj.supabase.co
     cors_origins: str = "http://localhost:8081"
+    admin_email: str = ""
 
     @property
     def supabase_jwks_url(self) -> str:

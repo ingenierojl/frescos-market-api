@@ -64,7 +64,7 @@ Docs interactivas en `http://localhost:8000/docs`.
 - **Language**: Python 3
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Variables de entorno (`DATABASE_URL`, `SUPABASE_URL`, `CORS_ORIGINS`) configuradas en Render → Environment, no committeadas al repo.
+- Variables de entorno (`DATABASE_URL`, `SUPABASE_URL`, `CORS_ORIGINS`, `ADMIN_EMAIL`) configuradas en Render → Environment, no committeadas al repo.
 
 ## Endpoints actuales
 
@@ -75,6 +75,8 @@ Docs interactivas en `http://localhost:8000/docs`.
 | POST | `/api/v1/orders` | opcional | crea un pedido (con o sin sesión — invitado permitido) |
 | GET | `/api/v1/orders/me` | requerida | historial de pedidos del usuario logueado |
 | GET | `/api/v1/users/me` | requerida | id/email del usuario actual (del JWT) |
+| GET | `/api/v1/admin/orders` | admin | lista **todos** los pedidos (403 si el email no coincide con `ADMIN_EMAIL`) |
+| PATCH | `/api/v1/admin/orders/{id}/status` | admin | cambia el estado de un pedido (`pending`/`confirmed`/`delivered`/`cancelled`) |
 
 ## Pendiente / próximos pasos
 

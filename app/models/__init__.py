@@ -1,4 +1,4 @@
-from app.models.order import Order, OrderItem, OrderStatus
+from app.models.order import Order, OrderItem, OrderMessage, OrderStatus
 from app.models.product import Product
 
-__all__ = ["Product", "Order", "OrderItem", "OrderStatus"]
+__all__ = ["Product", "Order", "OrderItem", "OrderMessage", "OrderStatus"]

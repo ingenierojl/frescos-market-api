@@ -36,14 +36,39 @@ CurrentUserRequired = Annotated[CurrentUser, Depends(get_current_user)]
 CurrentUserOptional = Annotated[CurrentUser | None, Depends(get_current_user_optional)]
 
 
+def _email_matches(email: str | None, configured: str) -> bool:
+    return bool(configured) and (email or "").strip().lower() == configured.strip().lower()
+
+
+def is_admin_email(email: str | None) -> bool:
+    return _email_matches(email, settings.admin_email)
+
+
+def is_dispatcher_email(email: str | None) -> bool:
+    return _email_matches(email, settings.dispatcher_email)
+
+
 async def get_current_admin(current_user: CurrentUserRequired) -> CurrentUser:
     """Requiere sesion Y que el email coincida con ADMIN_EMAIL. Usar en /admin/*."""
-    is_admin = bool(settings.admin_email) and (
-        current_user.email or ""
-    ).strip().lower() == settings.admin_email.strip().lower()
-    if not is_admin:
+    if not is_admin_email(current_user.email):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
+    return current_user
+
+
+async def get_current_dispatcher(current_user: CurrentUserRequired) -> CurrentUser:
+    """Requiere sesion Y que el email coincida con DISPATCHER_EMAIL. Usar en /dispatcher/*."""
+    if not is_dispatcher_email(current_user.email):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
+    return current_user
+
+
+async def get_current_team(current_user: CurrentUserRequired) -> CurrentUser:
+    """Admin O despachador. Usar donde ambos deben poder actuar (ej: chat, cambiar estado)."""
+    if not (is_admin_email(current_user.email) or is_dispatcher_email(current_user.email)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
     return current_user
 
 
 CurrentAdmin = Annotated[CurrentUser, Depends(get_current_admin)]
+CurrentDispatcher = Annotated[CurrentUser, Depends(get_current_dispatcher)]
+CurrentTeam = Annotated[CurrentUser, Depends(get_current_team)]

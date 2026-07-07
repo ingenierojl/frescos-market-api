@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from app.api.v1.deps import CurrentAdmin, DbSession
+from app.api.v1.deps import CurrentAdmin, CurrentTeam, DbSession
 from app.models.order import Order
 from app.models.product import Product
 from app.schemas.order import OrderOut, OrderStatusUpdate
@@ -15,7 +15,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/orders", response_model=list[OrderOut])
-async def list_all_orders(db: DbSession, _admin: CurrentAdmin):
+async def list_all_orders(db: DbSession, _team: CurrentTeam):
+    """Ve todos los pedidos: admin y despachador (para saber que entregar)."""
     query = select(Order).options(selectinload(Order.items)).order_by(Order.created_at.desc())
     result = await db.execute(query)
     return result.scalars().all()
@@ -26,7 +27,7 @@ async def update_order_status(
     order_id: uuid.UUID,
     payload: OrderStatusUpdate,
     db: DbSession,
-    _admin: CurrentAdmin,
+    _team: CurrentTeam,
 ):
     order = await db.get(Order, order_id, options=[selectinload(Order.items)])
     if order is None:

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.routes import admin, orders, products, users
+from app.api.v1.routes import admin, messages, orders, products, users
 from app.core.config import settings
 
 app = FastAPI(title="Frescos Market API", version="0.1.0")
@@ -18,6 +18,7 @@ app.include_router(products.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(messages.router, prefix="/api/v1")
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])

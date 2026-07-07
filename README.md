@@ -77,6 +77,7 @@ Docs interactivas en `http://localhost:8000/docs`.
 | GET | `/api/v1/users/me` | requerida | id/email del usuario actual (del JWT) |
 | GET | `/api/v1/admin/orders` | admin | lista **todos** los pedidos (403 si el email no coincide con `ADMIN_EMAIL`) |
 | PATCH | `/api/v1/admin/orders/{id}/status` | admin | cambia el estado de un pedido (`pending`/`confirmed`/`delivered`/`cancelled`) |
+| DELETE | `/api/v1/admin/orders/{id}` | admin | elimina un pedido con sus items y mensajes (solo admin, no despachador) |
 
 ## Pendiente / próximos pasos
 

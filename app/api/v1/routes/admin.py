@@ -39,6 +39,23 @@ async def update_order_status(
     return order
 
 
+@router.delete("/orders/{order_id}", status_code=204)
+async def delete_order(order_id: uuid.UUID, db: DbSession, _admin: CurrentAdmin):
+    """Solo admin (el despachador no puede borrar pedidos, solo cambiarles el estado)."""
+    order = await db.get(
+        Order,
+        order_id,
+        options=[selectinload(Order.items), selectinload(Order.messages)],
+    )
+    if order is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido no encontrado")
+
+    # items y messages se borran en cascada (delete-orphan del ORM); hay que
+    # cargarlos antes (selectinload) porque el cascade corre en Python, no en la DB.
+    await db.delete(order)
+    await db.commit()
+
+
 @router.get("/products", response_model=list[ProductOut])
 async def list_all_products(db: DbSession, _admin: CurrentAdmin):
     """Como /api/v1/products pero incluye inactivos, para gestionarlos."""

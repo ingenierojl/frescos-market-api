@@ -10,9 +10,10 @@ _jwks_client = PyJWKClient(settings.supabase_jwks_url)
 
 
 class CurrentUser:
-    def __init__(self, id: str, email: str | None):
+    def __init__(self, id: str, email: str | None, full_name: str | None = None):
         self.id = id
         self.email = email
+        self.full_name = full_name
 
 
 def decode_supabase_jwt(token: str) -> CurrentUser:
@@ -35,4 +36,6 @@ def decode_supabase_jwt(token: str) -> CurrentUser:
             detail="Token invalido o expirado",
         ) from exc
 
-    return CurrentUser(id=payload["sub"], email=payload.get("email"))
+    user_metadata = payload.get("user_metadata") or {}
+    full_name = user_metadata.get("full_name") or user_metadata.get("name")
+    return CurrentUser(id=payload["sub"], email=payload.get("email"), full_name=full_name)

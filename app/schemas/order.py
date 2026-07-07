@@ -12,9 +12,11 @@ class OrderItemIn(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    customer_name: str
+    # customer_name NO va aqui: se toma del nombre de Google en el JWT (login obligatorio).
     customer_phone: str
     delivery_address: str
+    department: str
+    city: str
     items: list[OrderItemIn]
 
 
@@ -36,6 +38,8 @@ class OrderOut(BaseModel):
     customer_name: str
     customer_phone: str
     delivery_address: str
+    department: str
+    city: str
     created_at: datetime
     items: list[OrderItemOut]
 

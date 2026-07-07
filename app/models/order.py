@@ -27,6 +27,8 @@ class Order(Base):
     customer_name: Mapped[str] = mapped_column(String(120))
     customer_phone: Mapped[str] = mapped_column(String(30))
     delivery_address: Mapped[str] = mapped_column(String(300))
+    department: Mapped[str] = mapped_column(String(60), server_default="")
+    city: Mapped[str] = mapped_column(String(60), server_default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")

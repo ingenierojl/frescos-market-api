@@ -8,7 +8,7 @@ from app.schemas.product import ProductOut
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("", response_model=list[ProductOut])
+@router.api_route("", methods=["GET", "HEAD"], response_model=list[ProductOut])
 async def list_products(db: DbSession, category: str | None = None):
     query = select(Product).where(Product.active.is_(True))
     if category:

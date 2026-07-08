@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:8081"
     admin_email: str = ""
     dispatcher_email: str = ""
+    telegram_bot_token: str = ""
 
     @property
     def supabase_jwks_url(self) -> str:

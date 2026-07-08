@@ -10,6 +10,8 @@ from app.models.order import Order
 from app.models.product import Product
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
+from app.schemas.settings import AppSettingsOut, AppSettingsUpdate
+from app.services.settings_service import get_or_create_settings
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -54,6 +56,21 @@ async def delete_order(order_id: uuid.UUID, db: DbSession, _admin: CurrentAdmin)
     # cargarlos antes (selectinload) porque el cascade corre en Python, no en la DB.
     await db.delete(order)
     await db.commit()
+
+
+@router.get("/settings", response_model=AppSettingsOut)
+async def get_settings(db: DbSession, _admin: CurrentAdmin):
+    return await get_or_create_settings(db)
+
+
+@router.put("/settings", response_model=AppSettingsOut)
+async def update_settings(payload: AppSettingsUpdate, db: DbSession, _admin: CurrentAdmin):
+    settings_row = await get_or_create_settings(db)
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(settings_row, key, value)
+    await db.commit()
+    await db.refresh(settings_row)
+    return settings_row
 
 
 @router.get("/products", response_model=list[ProductOut])

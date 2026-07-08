@@ -64,7 +64,7 @@ Docs interactivas en `http://localhost:8000/docs`.
 - **Language**: Python 3
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Variables de entorno (`DATABASE_URL`, `SUPABASE_URL`, `CORS_ORIGINS`, `ADMIN_EMAIL`) configuradas en Render → Environment, no committeadas al repo.
+- Variables de entorno (`DATABASE_URL`, `SUPABASE_URL`, `CORS_ORIGINS`, `ADMIN_EMAIL`, `DISPATCHER_EMAIL`, `TELEGRAM_BOT_TOKEN`) configuradas en Render → Environment, no committeadas al repo.
 
 ## Endpoints actuales
 
@@ -78,6 +78,10 @@ Docs interactivas en `http://localhost:8000/docs`.
 | GET | `/api/v1/admin/orders` | admin | lista **todos** los pedidos (403 si el email no coincide con `ADMIN_EMAIL`) |
 | PATCH | `/api/v1/admin/orders/{id}/status` | admin | cambia el estado de un pedido (`pending`/`confirmed`/`delivered`/`cancelled`) |
 | DELETE | `/api/v1/admin/orders/{id}` | admin | elimina un pedido con sus items y mensajes (solo admin, no despachador) |
+| GET | `/api/v1/admin/settings` | admin | lee la configuración (por ahora: `telegram_chat_id`) |
+| PUT | `/api/v1/admin/settings` | admin | actualiza la configuración (ej: cambiar a quién le llegan los avisos de Telegram) |
+
+Al crear un pedido (`POST /api/v1/orders`), si hay `TELEGRAM_BOT_TOKEN` configurado y un `telegram_chat_id` guardado (vía `/admin/settings`), se envía un aviso automático por Telegram ("Pedido nuevo de X, $Y"). Es best-effort: si falla, no afecta la creación del pedido.
 
 ## Pendiente / próximos pasos
 

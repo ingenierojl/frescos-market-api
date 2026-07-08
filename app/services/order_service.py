@@ -9,6 +9,8 @@ from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.profile import Profile
 from app.schemas.order import OrderCreate
+from app.services.settings_service import get_or_create_settings
+from app.services.telegram_service import format_cop, send_telegram_notification
 
 
 async def _save_profile(db: AsyncSession, user_id: str, payload: OrderCreate) -> None:
@@ -71,4 +73,12 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
     await _save_profile(db, current_user.id, payload)
     await db.commit()
     await db.refresh(order, attribute_names=["items"])
+
+    settings_row = await get_or_create_settings(db)
+    await send_telegram_notification(
+        settings_row.telegram_chat_id,
+        f"🛒 Pedido nuevo de {order.customer_name}, ${format_cop(order.total)}\n"
+        f"{order.delivery_address}, {order.city} ({order.department})",
+    )
+
     return order

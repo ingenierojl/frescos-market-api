@@ -6,8 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.api.v1.deps import CurrentAdmin, CurrentTeam, DbSession
+from app.models.catalog_option import CatalogOption
 from app.models.order import Order
 from app.models.product import Product
+from app.schemas.catalog_option import CatalogOptionCreate, CatalogOptionOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 from app.schemas.settings import AppSettingsOut, AppSettingsUpdate
@@ -71,6 +73,34 @@ async def update_settings(payload: AppSettingsUpdate, db: DbSession, _admin: Cur
     await db.commit()
     await db.refresh(settings_row)
     return settings_row
+
+
+@router.post("/catalog-options", response_model=CatalogOptionOut, status_code=201)
+async def create_catalog_option(payload: CatalogOptionCreate, db: DbSession, _admin: CurrentAdmin):
+    value = payload.value.strip()
+    existing = await db.execute(
+        select(CatalogOption).where(CatalogOption.type == payload.type, CatalogOption.value == value)
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Esa opción ya existe")
+
+    count_result = await db.execute(select(CatalogOption).where(CatalogOption.type == payload.type))
+    max_order = len(count_result.scalars().all())
+
+    option = CatalogOption(type=payload.type, value=value, sort_order=max_order)
+    db.add(option)
+    await db.commit()
+    await db.refresh(option)
+    return option
+
+
+@router.delete("/catalog-options/{option_id}", status_code=204)
+async def delete_catalog_option(option_id: int, db: DbSession, _admin: CurrentAdmin):
+    option = await db.get(CatalogOption, option_id)
+    if option is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Opción no encontrada")
+    await db.delete(option)
+    await db.commit()
 
 
 @router.get("/products", response_model=list[ProductOut])

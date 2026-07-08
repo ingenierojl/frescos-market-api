@@ -11,3 +11,4 @@ class AppSettings(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     telegram_chat_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    whatsapp_number: Mapped[str | None] = mapped_column(String(20), nullable=True)

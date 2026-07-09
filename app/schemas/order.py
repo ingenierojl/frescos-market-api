@@ -17,6 +17,7 @@ class OrderCreate(BaseModel):
     delivery_address: str
     department: str
     city: str
+    payment_method: str = Field(pattern="^(efectivo|transferencia)$", default="efectivo")
     items: list[OrderItemIn]
 
 
@@ -40,6 +41,7 @@ class OrderOut(BaseModel):
     delivery_address: str
     department: str
     city: str
+    payment_method: str
     created_at: datetime
     items: list[OrderItemOut]
 

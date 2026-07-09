@@ -29,6 +29,7 @@ class Order(Base):
     delivery_address: Mapped[str] = mapped_column(String(300))
     department: Mapped[str] = mapped_column(String(60), server_default="")
     city: Mapped[str] = mapped_column(String(60), server_default="")
+    payment_method: Mapped[str] = mapped_column(String(20), server_default="efectivo")  # "efectivo" | "transferencia"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")

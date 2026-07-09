@@ -8,9 +8,11 @@ from sqlalchemy.orm import selectinload
 from app.api.v1.deps import CurrentAdmin, CurrentTeam, DbSession
 from app.models.catalog_option import CatalogOption
 from app.models.order import Order
+from app.models.payment_option import PaymentOption
 from app.models.product import Product
 from app.schemas.catalog_option import CatalogOptionCreate, CatalogOptionOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
+from app.schemas.payment_option import PaymentOptionCreate, PaymentOptionOut, PaymentOptionUpdate
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 from app.schemas.settings import AppSettingsOut, AppSettingsUpdate
 from app.services.settings_service import get_or_create_settings
@@ -97,6 +99,46 @@ async def create_catalog_option(payload: CatalogOptionCreate, db: DbSession, _ad
 @router.delete("/catalog-options/{option_id}", status_code=204)
 async def delete_catalog_option(option_id: int, db: DbSession, _admin: CurrentAdmin):
     option = await db.get(CatalogOption, option_id)
+    if option is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Opción no encontrada")
+    await db.delete(option)
+    await db.commit()
+
+
+@router.post("/payment-options", response_model=PaymentOptionOut, status_code=201)
+async def create_payment_option(payload: PaymentOptionCreate, db: DbSession, _admin: CurrentAdmin):
+    count_result = await db.execute(select(PaymentOption))
+    max_order = len(count_result.scalars().all())
+
+    option = PaymentOption(
+        label=payload.label.strip(),
+        phone_or_account=payload.phone_or_account.strip(),
+        qr_image_url=payload.qr_image_url,
+        sort_order=max_order,
+    )
+    db.add(option)
+    await db.commit()
+    await db.refresh(option)
+    return option
+
+
+@router.put("/payment-options/{option_id}", response_model=PaymentOptionOut)
+async def update_payment_option(option_id: int, payload: PaymentOptionUpdate, db: DbSession, _admin: CurrentAdmin):
+    option = await db.get(PaymentOption, option_id)
+    if option is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Opción no encontrada")
+
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(option, key, value)
+
+    await db.commit()
+    await db.refresh(option)
+    return option
+
+
+@router.delete("/payment-options/{option_id}", status_code=204)
+async def delete_payment_option(option_id: int, db: DbSession, _admin: CurrentAdmin):
+    option = await db.get(PaymentOption, option_id)
     if option is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Opción no encontrada")
     await db.delete(option)

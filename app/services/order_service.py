@@ -67,6 +67,7 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
         delivery_address=payload.delivery_address,
         department=payload.department,
         city=payload.city,
+        payment_method=payload.payment_method,
         items=order_items,
     )
     db.add(order)
@@ -78,7 +79,8 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
     await send_telegram_notification(
         settings_row.telegram_chat_id,
         f"🛒 Pedido nuevo de {order.customer_name}, ${format_cop(order.total)}\n"
-        f"{order.delivery_address}, {order.city} ({order.department})",
+        f"{order.delivery_address}, {order.city} ({order.department})\n"
+        f"Pago: {'transferencia' if order.payment_method == 'transferencia' else 'efectivo'}",
     )
 
     return order

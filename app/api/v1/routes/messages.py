@@ -52,6 +52,7 @@ async def create_message(
         sender_role="team" if is_team else "customer",
         sender_email=current_user.email if current_user else None,
         body=payload.body,
+        image_url=payload.image_url,
     )
     db.add(message)
     await db.commit()

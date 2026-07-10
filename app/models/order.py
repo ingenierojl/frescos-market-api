@@ -56,7 +56,8 @@ class OrderMessage(Base):
     order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id"), index=True)
     sender_role: Mapped[str] = mapped_column(String(20))  # "customer" | "team" (admin o despachador)
     sender_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    body: Mapped[str] = mapped_column(String(1000))
+    body: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String(300), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     order: Mapped["Order"] = relationship(back_populates="messages")

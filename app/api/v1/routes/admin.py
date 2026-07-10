@@ -9,11 +9,11 @@ from app.api.v1.deps import CurrentAdmin, CurrentTeam, DbSession
 from app.models.catalog_option import CatalogOption
 from app.models.order import Order
 from app.models.payment_option import PaymentOption
-from app.models.product import Product
+from app.models.product import Product, ProductPhoto
 from app.schemas.catalog_option import CatalogOptionCreate, CatalogOptionOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.schemas.payment_option import PaymentOptionCreate, PaymentOptionOut, PaymentOptionUpdate
-from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
+from app.schemas.product import ProductCreate, ProductOut, ProductPhotoCreate, ProductPhotoOut, ProductUpdate
 from app.schemas.settings import AppSettingsOut, AppSettingsUpdate
 from app.services.settings_service import get_or_create_settings
 from app.services.storage_cleanup_service import delete_chat_images
@@ -155,7 +155,8 @@ async def delete_payment_option(option_id: int, db: DbSession, _admin: CurrentAd
 @router.get("/products", response_model=list[ProductOut])
 async def list_all_products(db: DbSession, _admin: CurrentAdmin):
     """Como /api/v1/products pero incluye inactivos, para gestionarlos."""
-    result = await db.execute(select(Product).order_by(Product.name))
+    query = select(Product).options(selectinload(Product.photos)).order_by(Product.name)
+    result = await db.execute(query)
     return result.scalars().all()
 
 
@@ -168,13 +169,13 @@ async def create_product(payload: ProductCreate, db: DbSession, _admin: CurrentA
     product = Product(**payload.model_dump())
     db.add(product)
     await db.commit()
-    await db.refresh(product)
+    await db.refresh(product, attribute_names=["photos"])
     return product
 
 
 @router.put("/products/{product_id}", response_model=ProductOut)
 async def update_product(product_id: int, payload: ProductUpdate, db: DbSession, _admin: CurrentAdmin):
-    product = await db.get(Product, product_id)
+    product = await db.get(Product, product_id, options=[selectinload(Product.photos)])
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
 
@@ -182,13 +183,78 @@ async def update_product(product_id: int, payload: ProductUpdate, db: DbSession,
         setattr(product, key, value)
 
     await db.commit()
-    await db.refresh(product)
+    await db.refresh(product, attribute_names=["photos"])
     return product
+
+
+MAX_EXTRA_PHOTOS = 3
+
+
+@router.post("/products/{product_id}/photos", response_model=ProductPhotoOut, status_code=201)
+async def add_product_photo(product_id: int, payload: ProductPhotoCreate, db: DbSession, _admin: CurrentAdmin):
+    product = await db.get(Product, product_id, options=[selectinload(Product.photos)])
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
+    if len(product.photos) >= MAX_EXTRA_PHOTOS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Máximo {MAX_EXTRA_PHOTOS} fotos adicionales por producto",
+        )
+
+    max_order = max((p.sort_order for p in product.photos), default=-1)
+    photo = ProductPhoto(product_id=product_id, photo_url=payload.photo_url, sort_order=max_order + 1)
+    db.add(photo)
+    await db.commit()
+    await db.refresh(photo)
+    return photo
+
+
+@router.delete("/products/{product_id}/photos/{photo_id}", status_code=204)
+async def delete_product_photo(product_id: int, photo_id: int, db: DbSession, _admin: CurrentAdmin):
+    photo = await db.get(ProductPhoto, photo_id)
+    if photo is None or photo.product_id != product_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Foto no encontrada")
+    await db.delete(photo)
+    await db.commit()
+
+
+@router.post("/products/{product_id}/photos/{photo_id}/move", response_model=list[ProductPhotoOut])
+async def move_product_photo(
+    product_id: int,
+    photo_id: int,
+    direction: str,
+    db: DbSession,
+    _admin: CurrentAdmin,
+):
+    """direction: 'up' | 'down' -- intercambia el sort_order con la foto vecina."""
+    if direction not in ("up", "down"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="direction debe ser 'up' o 'down'")
+
+    result = await db.execute(
+        select(ProductPhoto).where(ProductPhoto.product_id == product_id).order_by(ProductPhoto.sort_order)
+    )
+    photos = result.scalars().all()
+    index = next((i for i, p in enumerate(photos) if p.id == photo_id), None)
+    if index is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Foto no encontrada")
+
+    swap_index = index - 1 if direction == "up" else index + 1
+    if 0 <= swap_index < len(photos):
+        photos[index].sort_order, photos[swap_index].sort_order = (
+            photos[swap_index].sort_order,
+            photos[index].sort_order,
+        )
+        await db.commit()
+
+    result = await db.execute(
+        select(ProductPhoto).where(ProductPhoto.product_id == product_id).order_by(ProductPhoto.sort_order)
+    )
+    return result.scalars().all()
 
 
 @router.delete("/products/{product_id}", status_code=204)
 async def delete_product(product_id: int, db: DbSession, _admin: CurrentAdmin):
-    product = await db.get(Product, product_id)
+    product = await db.get(Product, product_id, options=[selectinload(Product.photos)])
     if product is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
 

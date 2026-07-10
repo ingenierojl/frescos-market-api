@@ -1,4 +1,16 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ProductPhotoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    photo_url: str
+    sort_order: int
+
+
+class ProductPhotoCreate(BaseModel):
+    photo_url: str = Field(min_length=1, max_length=300)
 
 
 class ProductOut(BaseModel):
@@ -13,6 +25,7 @@ class ProductOut(BaseModel):
     photo_url: str
     stock: int | None
     active: bool
+    photos: list[ProductPhotoOut] = []
 
 
 class ProductCreate(BaseModel):

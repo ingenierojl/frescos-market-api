@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.core.config import settings
 from app.db.base import Base
-from app.models import AppSettings, CatalogOption, Order, OrderItem, OrderMessage, PaymentOption, Product, Profile  # noqa: F401 (registra los modelos en Base.metadata)
+from app.models import AppSettings, CatalogOption, Order, OrderItem, OrderMessage, PaymentOption, Product, ProductPhoto, Profile  # noqa: F401 (registra los modelos en Base.metadata)
 
 config = context.config
 

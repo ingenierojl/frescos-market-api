@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     admin_email: str = ""
     dispatcher_email: str = ""
     telegram_bot_token: str = ""
+    # Service role de Supabase (Settings -> API -> service_role): solo para
+    # borrar objetos de Storage al eliminar un pedido. Nunca se expone al
+    # frontend. Si queda vacio, la limpieza de fotos simplemente se salta.
+    supabase_service_role_key: str = ""
 
     @property
     def supabase_jwks_url(self) -> str:

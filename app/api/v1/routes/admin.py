@@ -16,6 +16,7 @@ from app.schemas.payment_option import PaymentOptionCreate, PaymentOptionOut, Pa
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 from app.schemas.settings import AppSettingsOut, AppSettingsUpdate
 from app.services.settings_service import get_or_create_settings
+from app.services.storage_cleanup_service import delete_chat_images
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -58,8 +59,14 @@ async def delete_order(order_id: uuid.UUID, db: DbSession, _admin: CurrentAdmin)
 
     # items y messages se borran en cascada (delete-orphan del ORM); hay que
     # cargarlos antes (selectinload) porque el cascade corre en Python, no en la DB.
+    image_urls = [m.image_url for m in order.messages if m.image_url]
+
     await db.delete(order)
     await db.commit()
+
+    # Se borra despues del commit: si el borrado de fotos fallara, el pedido
+    # ya quedo eliminado igual (la limpieza de Storage es best-effort).
+    await delete_chat_images(image_urls)
 
 
 @router.get("/settings", response_model=AppSettingsOut)

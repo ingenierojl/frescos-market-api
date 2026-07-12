@@ -12,7 +12,9 @@ class OrderItemIn(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    # customer_name NO va aqui: se toma del nombre de Google en el JWT (login obligatorio).
+    # customer_name solo se usa para pedidos de invitado (sin login); si hay sesion,
+    # el nombre se toma del JWT de Google y este campo se ignora.
+    customer_name: str | None = None
     customer_phone: str
     delivery_address: str
     department: str

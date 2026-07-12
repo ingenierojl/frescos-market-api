@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.api.v1.deps import CurrentUserRequired, DbSession
+from app.api.v1.deps import CurrentUserOptional, CurrentUserRequired, DbSession
 from app.models.order import Order
 from app.schemas.order import OrderCreate, OrderOut
 from app.services.order_service import create_order
@@ -16,9 +16,10 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 async def create_order_endpoint(
     payload: OrderCreate,
     db: DbSession,
-    current_user: CurrentUserRequired,
+    current_user: CurrentUserOptional,
 ):
-    """Requiere login: el nombre del cliente se toma del Google del usuario, no de un formulario."""
+    """Con sesion, el nombre se toma del Google del usuario. Sin sesion (invitado, ej.
+    canal de WhatsApp), se exige customer_name en el payload."""
     return await create_order(db, payload, current_user)
 
 

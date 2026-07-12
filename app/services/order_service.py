@@ -25,7 +25,7 @@ async def _save_profile(db: AsyncSession, user_id: str, payload: OrderCreate) ->
     profile.city = payload.city
 
 
-async def create_order(db: AsyncSession, payload: OrderCreate, current_user: CurrentUser) -> Order:
+async def create_order(db: AsyncSession, payload: OrderCreate, current_user: CurrentUser | None) -> Order:
     slugs = [item.product_slug for item in payload.items]
     result = await db.execute(select(Product).where(Product.slug.in_(slugs)))
     products_by_slug = {p.slug: p for p in result.scalars().all()}
@@ -59,10 +59,20 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
         if product.stock is not None:
             product.stock -= item.quantity
 
+    if current_user is None and not (payload.customer_name and payload.customer_name.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Falta el nombre del cliente para un pedido de invitado",
+        )
+
     order = Order(
-        user_id=uuid.UUID(current_user.id),
+        user_id=uuid.UUID(current_user.id) if current_user else None,
         total=total,
-        customer_name=current_user.full_name or current_user.email or "Cliente",
+        customer_name=(
+            current_user.full_name or current_user.email or "Cliente"
+            if current_user
+            else payload.customer_name.strip()
+        ),
         customer_phone=payload.customer_phone,
         delivery_address=payload.delivery_address,
         department=payload.department,
@@ -71,7 +81,8 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
         items=order_items,
     )
     db.add(order)
-    await _save_profile(db, current_user.id, payload)
+    if current_user:
+        await _save_profile(db, current_user.id, payload)
     await db.commit()
     await db.refresh(order, attribute_names=["items"])
 

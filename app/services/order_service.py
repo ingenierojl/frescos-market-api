@@ -78,6 +78,7 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
         department=payload.department,
         city=payload.city,
         payment_method=payload.payment_method,
+        channel=payload.channel,
         items=order_items,
     )
     db.add(order)

@@ -20,6 +20,7 @@ class OrderCreate(BaseModel):
     department: str
     city: str
     payment_method: str = Field(pattern="^(efectivo|transferencia)$", default="efectivo")
+    channel: str = Field(pattern="^(google|whatsapp)$", default="google")
     items: list[OrderItemIn]
 
 
@@ -44,6 +45,7 @@ class OrderOut(BaseModel):
     department: str
     city: str
     payment_method: str
+    channel: str
     created_at: datetime
     items: list[OrderItemOut]
 

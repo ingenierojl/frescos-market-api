@@ -21,6 +21,10 @@ class OrderCreate(BaseModel):
     city: str
     payment_method: str = Field(pattern="^(efectivo|transferencia)$", default="efectivo")
     channel: str = Field(pattern="^(google|whatsapp)$", default="google")
+    # Si es false, esta direccion/telefono se usan solo para este pedido y NO
+    # se guardan como el perfil por defecto del usuario. Default True mantiene
+    # el comportamiento de siempre para cualquier cliente que no mande el campo.
+    save_as_profile: bool = True
     items: list[OrderItemIn]
 
 

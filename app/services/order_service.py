@@ -82,7 +82,7 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
         items=order_items,
     )
     db.add(order)
-    if current_user:
+    if current_user and payload.save_as_profile:
         await _save_profile(db, current_user.id, payload)
     await db.commit()
     await db.refresh(order, attribute_names=["items"])

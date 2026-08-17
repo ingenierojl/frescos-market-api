@@ -51,6 +51,7 @@ class OrderOut(BaseModel):
     payment_method: str
     channel: str
     created_at: datetime
+    has_unread_messages: bool = False
     items: list[OrderItemOut]
 
 

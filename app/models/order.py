@@ -32,6 +32,9 @@ class Order(Base):
     payment_method: Mapped[str] = mapped_column(String(20), server_default="efectivo")  # "efectivo" | "transferencia"
     channel: Mapped[str] = mapped_column(String(20), server_default="google")  # "google" | "whatsapp"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # NULL = el equipo (admin/despachador) nunca ha abierto el chat de este
+    # pedido. Se actualiza en list_messages() cuando lo consulta un team member.
+    admin_last_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
     messages: Mapped[list["OrderMessage"]] = relationship(back_populates="order", cascade="all, delete-orphan")

@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.sql import func
 
 from app.api.v1.deps import CurrentUserOptional, DbSession, is_admin_email, is_dispatcher_email
 from app.models.order import Order, OrderMessage
@@ -31,7 +32,14 @@ async def _get_order_with_access_check(db: DbSession, order_id: uuid.UUID, curre
 
 @router.get("/{order_id}/messages", response_model=list[MessageOut])
 async def list_messages(order_id: uuid.UUID, db: DbSession, current_user: CurrentUserOptional):
-    await _get_order_with_access_check(db, order_id, current_user)
+    order, is_team = await _get_order_with_access_check(db, order_id, current_user)
+
+    if is_team:
+        # El equipo (admin o despachador) esta viendo este chat ahora mismo:
+        # marca el pedido como leido, asi desaparece el aviso en /admin/orders.
+        order.admin_last_read_at = func.now()
+        await db.commit()
+
     result = await db.execute(
         select(OrderMessage).where(OrderMessage.order_id == order_id).order_by(OrderMessage.created_at)
     )

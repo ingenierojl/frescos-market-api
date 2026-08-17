@@ -1,13 +1,13 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.api.v1.deps import CurrentAdmin, CurrentTeam, DbSession
 from app.models.catalog_option import CatalogOption
-from app.models.order import Order
+from app.models.order import Order, OrderMessage
 from app.models.payment_option import PaymentOption
 from app.models.product import Product, ProductPhoto
 from app.schemas.catalog_option import CatalogOptionCreate, CatalogOptionOut
@@ -26,7 +26,26 @@ async def list_all_orders(db: DbSession, _team: CurrentTeam):
     """Ve todos los pedidos: admin y despachador (para saber que entregar)."""
     query = select(Order).options(selectinload(Order.items)).order_by(Order.created_at.desc())
     result = await db.execute(query)
-    return result.scalars().all()
+    orders = result.scalars().all()
+
+    # Pedidos con al menos un mensaje de cliente posterior a la ultima vez
+    # que el equipo (admin o despachador) abrio ese chat -- alimenta el
+    # punto de aviso en el panel (ver has_unread_messages en OrderOut).
+    unread_result = await db.execute(
+        select(OrderMessage.order_id)
+        .join(Order, Order.id == OrderMessage.order_id)
+        .where(
+            OrderMessage.sender_role == "customer",
+            or_(Order.admin_last_read_at.is_(None), OrderMessage.created_at > Order.admin_last_read_at),
+        )
+        .distinct()
+    )
+    unread_order_ids = {row[0] for row in unread_result.all()}
+
+    for order in orders:
+        order.has_unread_messages = order.id in unread_order_ids
+
+    return orders
 
 
 @router.patch("/orders/{order_id}/status", response_model=OrderOut)

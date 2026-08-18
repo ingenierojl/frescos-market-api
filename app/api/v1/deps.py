@@ -2,11 +2,12 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.security import CurrentUser, decode_supabase_jwt
 from app.db.session import get_db
+from app.models.team_member import TeamMember, TeamRole
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -36,35 +37,40 @@ CurrentUserRequired = Annotated[CurrentUser, Depends(get_current_user)]
 CurrentUserOptional = Annotated[CurrentUser | None, Depends(get_current_user_optional)]
 
 
-def _email_matches(email: str | None, configured: str) -> bool:
-    return bool(configured) and (email or "").strip().lower() == configured.strip().lower()
+async def _has_role(db: AsyncSession, email: str | None, role: TeamRole) -> bool:
+    if not email:
+        return False
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.email == email.strip().lower(), TeamMember.role == role.value)
+    )
+    return result.scalar_one_or_none() is not None
 
 
-def is_admin_email(email: str | None) -> bool:
-    return _email_matches(email, settings.admin_email)
+async def is_admin_email(email: str | None, db: AsyncSession) -> bool:
+    return await _has_role(db, email, TeamRole.admin)
 
 
-def is_dispatcher_email(email: str | None) -> bool:
-    return _email_matches(email, settings.dispatcher_email)
+async def is_dispatcher_email(email: str | None, db: AsyncSession) -> bool:
+    return await _has_role(db, email, TeamRole.dispatcher)
 
 
-async def get_current_admin(current_user: CurrentUserRequired) -> CurrentUser:
-    """Requiere sesion Y que el email coincida con ADMIN_EMAIL. Usar en /admin/*."""
-    if not is_admin_email(current_user.email):
+async def get_current_admin(current_user: CurrentUserRequired, db: DbSession) -> CurrentUser:
+    """Requiere sesion Y ser admin en team_members. Usar en /admin/*."""
+    if not await is_admin_email(current_user.email, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
     return current_user
 
 
-async def get_current_dispatcher(current_user: CurrentUserRequired) -> CurrentUser:
-    """Requiere sesion Y que el email coincida con DISPATCHER_EMAIL. Usar en /dispatcher/*."""
-    if not is_dispatcher_email(current_user.email):
+async def get_current_dispatcher(current_user: CurrentUserRequired, db: DbSession) -> CurrentUser:
+    """Requiere sesion Y ser despachador en team_members."""
+    if not await is_dispatcher_email(current_user.email, db):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
     return current_user
 
 
-async def get_current_team(current_user: CurrentUserRequired) -> CurrentUser:
+async def get_current_team(current_user: CurrentUserRequired, db: DbSession) -> CurrentUser:
     """Admin O despachador. Usar donde ambos deben poder actuar (ej: chat, cambiar estado)."""
-    if not (is_admin_email(current_user.email) or is_dispatcher_email(current_user.email)):
+    if not (await is_admin_email(current_user.email, db) or await is_dispatcher_email(current_user.email, db)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado")
     return current_user
 

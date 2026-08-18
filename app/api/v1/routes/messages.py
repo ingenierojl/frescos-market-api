@@ -16,7 +16,9 @@ async def _get_order_with_access_check(db: DbSession, order_id: uuid.UUID, curre
     if order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido no encontrado")
 
-    is_team = current_user and (is_admin_email(current_user.email) or is_dispatcher_email(current_user.email))
+    is_team = current_user and (
+        await is_admin_email(current_user.email, db) or await is_dispatcher_email(current_user.email, db)
+    )
     is_owner = (
         current_user is not None and order.user_id is not None and str(order.user_id) == current_user.id
     )

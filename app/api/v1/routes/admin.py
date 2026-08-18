@@ -10,11 +10,13 @@ from app.models.catalog_option import CatalogOption
 from app.models.order import Order, OrderMessage
 from app.models.payment_option import PaymentOption
 from app.models.product import Product, ProductPhoto
+from app.models.team_member import TeamMember, TeamRole
 from app.schemas.catalog_option import CatalogOptionCreate, CatalogOptionOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.schemas.payment_option import PaymentOptionCreate, PaymentOptionOut, PaymentOptionUpdate
 from app.schemas.product import ProductCreate, ProductOut, ProductPhotoCreate, ProductPhotoOut, ProductUpdate
 from app.schemas.settings import AppSettingsOut, AppSettingsUpdate
+from app.schemas.team_member import TeamMemberCreate, TeamMemberOut, TeamMemberUpdate
 from app.services.settings_service import get_or_create_settings
 from app.services.storage_cleanup_service import delete_chat_images
 
@@ -286,3 +288,70 @@ async def delete_product(product_id: int, db: DbSession, _admin: CurrentAdmin):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No se puede eliminar: tiene pedidos asociados. Desactívalo en vez de borrarlo.",
         )
+
+
+# --- Equipo (admin/despachador) ---------------------------------------
+# Solo CurrentAdmin puede tocar esto -- un despachador no puede darse a si
+# mismo (ni a nadie) acceso de admin.
+
+
+async def _count_admins(db: DbSession) -> int:
+    result = await db.execute(select(TeamMember).where(TeamMember.role == TeamRole.admin.value))
+    return len(result.scalars().all())
+
+
+@router.get("/team", response_model=list[TeamMemberOut])
+async def list_team(db: DbSession, _admin: CurrentAdmin):
+    result = await db.execute(select(TeamMember).order_by(TeamMember.created_at))
+    return result.scalars().all()
+
+
+@router.post("/team", response_model=TeamMemberOut, status_code=201)
+async def add_team_member(payload: TeamMemberCreate, db: DbSession, _admin: CurrentAdmin):
+    email = payload.email.strip().lower()
+    existing = await db.execute(select(TeamMember).where(TeamMember.email == email))
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ese correo ya está en el equipo")
+
+    member = TeamMember(email=email, role=payload.role.value)
+    db.add(member)
+    await db.commit()
+    await db.refresh(member)
+    return member
+
+
+@router.put("/team/{member_id}", response_model=TeamMemberOut)
+async def update_team_member(member_id: int, payload: TeamMemberUpdate, db: DbSession, _admin: CurrentAdmin):
+    member = await db.get(TeamMember, member_id)
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No encontrado")
+
+    # Degradar de admin a despachador cuenta igual que borrarlo: no puede
+    # dejar menos de 2 admins en total (si hay exactamente 2 y se quita
+    # uno, quedaria 1 -- por eso el limite de rechazo es <= 2, no < 2).
+    if member.role == TeamRole.admin.value and payload.role != TeamRole.admin and await _count_admins(db) <= 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debe quedar al menos otro administrador antes de quitarle el rol a este",
+        )
+
+    member.role = payload.role.value
+    await db.commit()
+    await db.refresh(member)
+    return member
+
+
+@router.delete("/team/{member_id}", status_code=204)
+async def delete_team_member(member_id: int, db: DbSession, _admin: CurrentAdmin):
+    member = await db.get(TeamMember, member_id)
+    if member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No encontrado")
+
+    if member.role == TeamRole.admin.value and await _count_admins(db) <= 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Debe quedar al menos otro administrador antes de quitar a este",
+        )
+
+    await db.delete(member)
+    await db.commit()

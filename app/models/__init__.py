@@ -4,6 +4,7 @@ from app.models.payment_option import PaymentOption
 from app.models.product import Product, ProductPhoto
 from app.models.profile import Profile
 from app.models.settings import AppSettings
+from app.models.team_member import TeamMember, TeamRole
 
 __all__ = [
     "Product",
@@ -16,4 +17,6 @@ __all__ = [
     "AppSettings",
     "CatalogOption",
     "PaymentOption",
+    "TeamMember",
+    "TeamRole",
 ]

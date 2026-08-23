@@ -81,7 +81,7 @@ Docs interactivas en `http://localhost:8000/docs`.
 | GET | `/api/v1/admin/settings` | admin | lee la configuración (por ahora: `telegram_chat_id`) |
 | PUT | `/api/v1/admin/settings` | admin | actualiza la configuración (ej: cambiar a quién le llegan los avisos de Telegram) |
 
-Al crear un pedido (`POST /api/v1/orders`), si hay `TELEGRAM_BOT_TOKEN` configurado y un `telegram_chat_id` guardado (vía `/admin/settings`), se envía un aviso automático por Telegram ("Pedido nuevo de X, $Y"). Es best-effort: si falla, no afecta la creación del pedido.
+Al crear un pedido (`POST /api/v1/orders`), si hay `TELEGRAM_BOT_TOKEN` configurado y un `telegram_chat_id` guardado (vía `/admin/settings`), se envía un aviso automático por Telegram con el nombre del cliente, el detalle de cada producto pedido (cantidad, unidad, precio unitario y subtotal), el total y los datos de entrega/pago. Es best-effort: si falla, no afecta la creación del pedido.
 
 ## Pendiente / próximos pasos
 

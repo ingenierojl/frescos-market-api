@@ -38,6 +38,7 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
         )
 
     order_items: list[OrderItem] = []
+    detail_lines: list[str] = []
     total = 0
     for item in payload.items:
         product = products_by_slug[item.product_slug]
@@ -55,6 +56,14 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
                 unit_price=product.price,
                 subtotal=subtotal,
             )
+        )
+        # product.unit viene como "por libra", "por unidad", "atado", "canasta"...
+        # (catalogo editable). Se quita el prefijo "por " para que la linea se
+        # lea natural, ej. "3 libra de Papa" en vez de "3 por libra de Papa".
+        unit_label = product.unit[4:] if product.unit.lower().startswith("por ") else product.unit
+        detail_lines.append(
+            f"• {item.quantity} {unit_label} de {product.name} — "
+            f"${format_cop(product.price)} c/u = ${format_cop(subtotal)}"
         )
         if product.stock is not None:
             product.stock -= item.quantity
@@ -88,9 +97,12 @@ async def create_order(db: AsyncSession, payload: OrderCreate, current_user: Cur
     await db.refresh(order, attribute_names=["items"])
 
     settings_row = await get_or_create_settings(db)
+    items_text = "\n".join(detail_lines)
     await send_telegram_notification(
         settings_row.telegram_chat_id,
-        f"🛒 Pedido nuevo de {order.customer_name}, ${format_cop(order.total)}\n"
+        f"🛒 Pedido nuevo de {order.customer_name}\n"
+        f"{items_text}\n"
+        f"Total: ${format_cop(order.total)}\n"
         f"{order.delivery_address}, {order.city} ({order.department})\n"
         f"Pago: {'transferencia' if order.payment_method == 'transferencia' else 'efectivo'}",
     )
